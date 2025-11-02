@@ -15,38 +15,69 @@
 #define STR_HELPER(s) #s    
 #define STR(s) STR_HELPER(s)     
 
+// some default configuration values
 #define PORT_DEFAULT          "/dev/ttyACM0"
 #define SPEED_DEFAULT         115200
-#define BUFF_SIZE             1024
+#define FREQ_DEFAULT          434
+#define ATTEN_DEFAULT         30.0
+#define WINDOW_DEFAULT        512
 
+// buffer to save incoming data into
+#define BUFF_SIZE             4096
 static char rx_buff[BUFF_SIZE] = { 0 };
-//static char tx_buff[BUFF_SIZE] = { 0 };
 
+// app configuration structure
 static struct conf_t {
   char port[64];
   int speed;
+  int freq;
+  float atten;
+  int window;
   int handle;
 } conf = {
   .port = PORT_DEFAULT,
   .speed = SPEED_DEFAULT,
+  .freq = FREQ_DEFAULT,
+  .atten = ATTEN_DEFAULT,
+  .window = WINDOW_DEFAULT,
   .handle = -1,
 };
 
+// units returned by the meter
 enum sample_abs_level_unit {
   ABS_LEVEL_MICROWATT = 'u',
   ABS_LEVEL_MILLIWATT = 'm',
   ABS_LEVEL_WATT = 'w',
 };
 
+// structure to save data about a single sample
+// TODO add timestamp
 struct sample_t {
   float dbm;
   float abs_level;
   enum sample_abs_level_unit abs_unit;
 };
 
+// structure holdign information about the minimum and maximum
+static struct stats_t {
+  struct sample_t min;
+  struct sample_t max;
+} stats = {
+  .min = { .dbm = 99,  .abs_level = 1000, .abs_unit = ABS_LEVEL_WATT },
+  .max = { .dbm = -99, .abs_level = 0,    .abs_unit = ABS_LEVEL_MICROWATT },
+};
+
+// averaging window
+static float avg_window[BUFF_SIZE] = { 0 };
+static float* avg_ptr = avg_window;
+
+// argtable arguments
 static struct args_t {
   struct arg_str* port;
   struct arg_int* speed;
+  struct arg_int* freq;
+  struct arg_dbl* atten;
+  struct arg_int* window;
   struct arg_lit* help;
   struct arg_end* end;
 } args;
@@ -57,6 +88,8 @@ static void sighandler(int signal) {
 }
 
 static void exithandler(void) {
+  fprintf(stdout, "\n");
+  fflush(stdout);
   int ret = lgSerialClose(conf.handle);
   if(ret < 0) {
     fprintf(stderr, "ERROR: Failed to close COM port (%s)\n", lguErrorText(ret));
@@ -134,14 +167,49 @@ static void process_rx(char* data, int len) {
     // copy string between those two pointers
     memcpy(buff, ptr_prev, ptr - ptr_prev);
 
+    // parse the sample
     struct sample_t sample = { 0 };
     parse_sample(buff, &sample);
-    fprintf(stdout, "%.1f dBm\t %.2f %c\n", (double)sample.dbm, (double)sample.abs_level, sample.abs_unit);
+
+    // update statistics
+    if(sample.dbm < stats.min.dbm) {
+      stats.min.dbm = sample.dbm;
+    } else if(sample.dbm > stats.max.dbm) {
+      stats.max.dbm = sample.dbm;
+    }
+
+    // calculate the average
+    *avg_ptr = sample.dbm;
+    float avg = 0;
+    for(int i = 0; i < conf.window; i++) {
+      avg += avg_window[i];
+    }
+    avg /= conf.window;
+    avg_ptr++;
+    if((avg_ptr - avg_window) > conf.window) {
+      avg_ptr = avg_window;
+    }
+
+    // print the result
+    fprintf(stdout, " %5.1f dBm  %6.2f %c    %5.1f dBm  %5.1f dBm  %5.1f dBm\r", 
+      (double)sample.dbm,
+      (double)sample.abs_level,
+      sample.abs_unit,
+      (double)stats.min.dbm,
+      (double)stats.max.dbm,
+      (double)avg);
+    fflush(stdout);
 
     // clear the buffer and advance pointer
     memset(buff, 0, sizeof(buff));
     ptr_prev = ptr;
   }
+}
+
+static int set_config(int handle, int freq, float atten) {
+  char buff[32];
+  sprintf(buff, "A%04d+%.2f\r\n", freq, (double)atten);
+  return(lgSerialWrite(handle, buff, strlen(buff)));
 }
 
 static int run() {
@@ -152,9 +220,16 @@ static int run() {
     return(conf.handle);
   }
 
+  // send the configuration
+  int ret = set_config(conf.handle, conf.freq, conf.atten);
+  if(ret != 0) {
+    return(ret);
+  }
+
   // counters
   int av_count = 0;
   int rx_count = 0;
+  fprintf(stdout, " Relative   Absolute    Minimum    Maximum     Average\n");
 
   // run until killed by the user
   for(;;) {
@@ -182,7 +257,10 @@ static int run() {
 int main(int argc, char** argv) {
   void *argtable[] = {
     args.port = arg_str0("p", "port", NULL, "Which port to use, defaults to" STR(PORT_DEFAULT)),
-    args.speed = arg_int0("s", "speed", NULL, "Port speed, defaults to " STR(SPEED_DEFAULT)),
+    args.speed = arg_int0("s", "speed", "baud", "Port speed, defaults to " STR(SPEED_DEFAULT)),
+    args.freq = arg_int0("f", "frequency", "MHz", "Frequency to set, defaults to " STR(FREQ_DEFAULT)),
+    args.atten = arg_dbl0("a", "attenuation", "dB", "Attenuation to set, defaults to " STR(ATTEN_DEFAULT)),
+    args.window = arg_int0("w", "window", NULL, "Averaging window length, defaults to " STR(WINDOW_DEFAULT)),
     args.help = arg_lit0(NULL, "help", "Display this help and exit"),
     args.end = arg_end(2),
   };
@@ -218,6 +296,9 @@ int main(int argc, char** argv) {
 
   if(args.port->count) { strncpy(conf.port, args.port->sval[0], strlen(args.port->sval[0])); }
   if(args.speed->count) { conf.speed = args.speed->ival[0]; }
+  if(args.freq->count) { conf.freq = args.freq->ival[0]; }
+  if(args.atten->count) { conf.atten = args.atten->dval[0]; }
+  if(args.window->count) { conf.window = args.window->ival[0]; }
 
   exitcode = run();
 

@@ -18,7 +18,9 @@ Start the program by calling `./build/powermon`. Check the helptext `./build/pow
 
 In order of priorities:
 
-* allow configuration of frequency and attenuation
-* provide minimum, maximum and average values
+* implement sampling rate control and/or decimation
+* gitrev in CMake
+* export timeseries in some reusable format
 * allow control and data readout via sockets
-* GUI in commandline
+* debugging
+* CI
