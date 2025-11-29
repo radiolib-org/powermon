@@ -294,7 +294,7 @@ int main(int argc, char** argv) {
   atexit(exithandler);
   signal(SIGINT, sighandler);
 
-  if(args.port->count) { strncpy(conf.port, args.port->sval[0], strlen(args.port->sval[0])); }
+  if(args.port->count) { strncpy(conf.port, args.port->sval[0], sizeof(conf.port) - 1); }
   if(args.speed->count) { conf.speed = args.speed->ival[0]; }
   if(args.freq->count) { conf.freq = args.freq->ival[0]; }
   if(args.atten->count) { conf.atten = args.atten->dval[0]; }
