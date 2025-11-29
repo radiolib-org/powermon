@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 
-# create the project
-project(powermon)
+project(rf-powermon)
 
-# when using debuggers such as gdb, the following line can be used
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 add_subdirectory("lib/argtable3")
 

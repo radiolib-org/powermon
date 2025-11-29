@@ -3,7 +3,7 @@
 set -e
 mkdir -p build
 cd build
-cmake -G "CodeBlocks - Unix Makefiles" ..
+cmake ..
 make
 cd ..
-size build/powermon
+size build/rf-powermon
