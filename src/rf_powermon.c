@@ -7,8 +7,7 @@
 
 #include <lgpio.h>
 #include "argtable3/argtable3.h"
-
-#include "socket.h"
+#include "socket/socket.h"
 
 #ifndef GITREV
 #define GITREV "unknown"
