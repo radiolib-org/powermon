@@ -50,7 +50,7 @@ int socket_read(int listen_fd, char* cmd_buff) {
   do {
     ioctl(cmd_conn_fd, FIONREAD, &len);
   } while(!len);
-  len = recv(cmd_conn_fd, cmd_buff, sizeof(cmd_buff) - 1, 0);
+  len = recv(cmd_conn_fd, cmd_buff, len, 0);
   if(len < 0) {
     // something went wrong
     return(0);
