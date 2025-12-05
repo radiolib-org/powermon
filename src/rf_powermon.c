@@ -116,8 +116,6 @@ static void stats_reset() {
 }
 
 static void process_socket_cmd(int fd, char* cmd) {
-  fprintf(stderr, "cmd: %s\n", cmd);
-
   char buff[64] = { 0 };
   if(strstr(cmd, RF_POWERMON_CMD_READ_POWER) == cmd) {
     sprintf(buff, "%.2fdBm" RF_POWERMON_RSP_LINEFEED, (double)stats.avg.dbm);
@@ -133,8 +131,8 @@ static void process_socket_cmd(int fd, char* cmd) {
     raise(SIGINT);
 
   } else {
-    fprintf(stderr, "invalid cmd: %s\n", cmd);
-  
+    // TODO handle invalid commands?
+
   }
 
 
