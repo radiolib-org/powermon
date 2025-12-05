@@ -78,7 +78,7 @@ int rf_powermon_init(const char* hostname, int port) {
 int rf_powermon_read(float* val) {
   char rpl_buff[256];
   int ret = rf_powermon_exec(RF_POWERMON_CMD_READ_POWER, rpl_buff);
-  // TODO parse the value
+  if(val) { *val = strtof(rpl_buff, NULL); }
   return(ret);
 }
 
