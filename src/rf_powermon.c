@@ -9,6 +9,8 @@
 #include "argtable3/argtable3.h"
 #include "socket/socket.h"
 
+#include "rf-powermon-client/rf_powermon_cmds.h"
+
 #ifndef GITREV
 #define GITREV "unknown"
 #endif
@@ -114,15 +116,27 @@ static void stats_reset() {
 }
 
 static void process_socket_cmd(int fd, char* cmd) {
-  char buff[64] = { 0 };
-  if(strstr(cmd, "read") == cmd) {
-    sprintf(buff, "read: min=%.2fdBm, max=%.2fdBm, avg=%.2fdBm\n", (double)stats.min.dbm, (double)stats.max.dbm, (double)stats.avg.dbm);
+  fprintf(stderr, "cmd: %s\n", cmd);
 
-  } else if(strstr(cmd, "reset") == cmd) {
+  char buff[64] = { 0 };
+  if(strstr(cmd, RF_POWERMON_CMD_READ_POWER) == cmd) {
+    sprintf(buff, "%.2fdBm" RF_POWERMON_RSP_LINEFEED, (double)stats.avg.dbm);
+
+  } else if(strstr(cmd, RF_POWERMON_CMD_RESET) == cmd) {
     stats_reset();
-    sprintf(buff, "reset:ok\n");
+    sprintf(buff, RF_POWERMON_RSP_LINEFEED);
+  
+  } else if(strstr(cmd, RF_POWERMON_CMD_ID) == cmd) {
+    sprintf(buff, "radiolib-org,RFpowerMon," GITREV "," RF_POWERMON_RSP_LINEFEED);
+
+  } else if(strstr(cmd, RF_POWERMON_CMD_SYSTEM_EXIT) == cmd) {
+    raise(SIGINT);
+
+  } else {
+    fprintf(stderr, "invalid cmd: %s\n", cmd);
   
   }
+
 
   socket_write(fd, buff);
 }

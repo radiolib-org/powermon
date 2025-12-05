@@ -1,3 +1,3 @@
 #!/bin/bash
 
-echo "read" | nc localhost 41122
+echo "POWER:READ?" | nc localhost 41122

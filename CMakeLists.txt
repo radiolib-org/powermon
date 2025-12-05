@@ -6,6 +6,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 add_subdirectory("lib/argtable3")
 add_subdirectory("lib/socket")
+add_subdirectory("lib/rf-powermon-client")
 
 file(GLOB SOURCES "src/*.c")
 
