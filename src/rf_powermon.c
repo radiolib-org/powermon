@@ -22,7 +22,7 @@
 #define PORT_DEFAULT          "/dev/ttyACM0"
 #define SPEED_DEFAULT         115200
 #define FREQ_DEFAULT          434
-#define ATTEN_DEFAULT         30.0
+#define ATTEN_DEFAULT         0.0
 #define WINDOW_DEFAULT        512
 #define CONTROL_DEFAULT       41122
 
