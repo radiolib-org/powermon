@@ -87,6 +87,12 @@ static int serial_read(int fd, char* cmd_buff) {
   } while(n > 0);
   int len = ptr - cmd_buff;
   cmd_buff[len] = '\0';
+
+  // strip trailing newline if present
+  if((strlen(cmd_buff) > 1) && (cmd_buff[strlen(cmd_buff) - 1] == '\n')) {
+    cmd_buff[strlen(cmd_buff) - 1] = '\0';
+  }
+
   return(len);
 }
 
@@ -142,7 +148,7 @@ int rf_powermon_init_serial(const char* port, int speed) {
   options.c_cc[VTIME] = 5; // 0.5 seconds read timeout
 
   // TODO support for other speed rates
-  (void)
+  (void)speed;
   cfsetispeed(&options, B115200);
   cfsetospeed(&options, B115200);
 
@@ -165,4 +171,8 @@ int rf_powermon_exit() {
 
 int rf_powermon_reset() {
   return(scpi_exec(RF_POWERMON_CMD_RESET, NULL));
+}
+
+int rf_powermon_id(char* buff) {
+  return(scpi_exec(RF_POWERMON_CMD_ID, buff));
 }

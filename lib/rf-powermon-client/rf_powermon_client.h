@@ -10,6 +10,7 @@ int rf_powermon_init_serial(const char* port, int speed);
 int rf_powermon_read(float* val);
 int rf_powermon_exit();
 int rf_powermon_reset();
+int rf_powermon_id(char* buff);
 
 #ifdef __cplusplus
 }

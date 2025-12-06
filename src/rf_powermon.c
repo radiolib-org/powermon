@@ -125,13 +125,14 @@ static void process_socket_cmd(int fd, char* cmd) {
     sprintf(buff, RF_POWERMON_RSP_LINEFEED);
   
   } else if(strstr(cmd, RF_POWERMON_CMD_ID) == cmd) {
-    sprintf(buff, "radiolib-org,RFpowerMon," GITREV "," RF_POWERMON_RSP_LINEFEED);
+    sprintf(buff, "radiolib-org,RFpowerMon," GITREV RF_POWERMON_RSP_LINEFEED);
 
   } else if(strstr(cmd, RF_POWERMON_CMD_SYSTEM_EXIT) == cmd) {
     raise(SIGINT);
 
   } else {
     // TODO handle invalid commands?
+    fprintf(stderr, "invalid socket cmd: %s\n", cmd);
 
   }
 
